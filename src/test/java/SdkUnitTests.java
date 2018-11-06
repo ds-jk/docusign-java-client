@@ -40,16 +40,16 @@ public class SdkUnitTests {
 	private static final String UserId = "fcc5726c-cd73-4844-b580-40bbbe6ca126";
 	private static final String IntegratorKey = "ae30ea4e-3959-4d1c-b867-fcb57d2dc4df";
 	private static final String IntegratorKeyImplicit = "68c1711f-8b19-47b1-888f-b49b4211d831";
-	private static final String ClientSecret = "b4dccdbe-232f-46cc-96c5-b2f0f7448f8f";
+	//private static final String ClientSecret = "b4dccdbe-232f-46cc-96c5-b2f0f7448f8f";
 	private static final String RedirectURI = "https://www.docusign.com/api";
 
 	private static final String BaseUrl = "https://demo.docusign.net/restapi";
-	private static final String OAuthBaseUrl = "account-d.docusign.com";
+	//private static final String OAuthBaseUrl = "account-d.docusign.com";
 	private static final String privateKeyFullPath = System.getProperty("user.dir") + "/src/test/keys/docusign_private_key.txt";
 
 	private static final String SignTest1File = "/src/test/docs/SignTest1.pdf";
 	private static final String TemplateId = "cf2a46c2-8d6e-4258-9d62-752547b1a419";
-	private String EnvelopeId = "a80d8c60-e81e-4354-a1ed-2a0a6a8365ff";
+	private String EnvelopeId = "548e24ea-f1a1-497b-b1ff-add3eb14d38d";
 	// JUnit 4.12 runs test cases in parallel, so the envelope ID needs to be initiated as well.
 
 	// private JSON json = new JSON();
@@ -73,15 +73,14 @@ public class SdkUnitTests {
 	public void tearDown() {
 	}
 
-	// TODO add test methods here.
 	// The methods must be annotated with annotation @Test. For example:
 	//
 	@Test
 	public void JWTLoginTest() {
 		System.out.println("\nJWTLoginTest:\n" + "===========================================");
 		ApiClient apiClient = new ApiClient(BaseUrl);
-		String currentDir = System.getProperty("user.dir");
-		
+		//String currentDir = System.getProperty("user.dir");
+
 		try {
 			// IMPORTANT NOTE:
 			// the first time you ask for a JWT access token, you should grant access by making the following call
@@ -193,7 +192,7 @@ public class SdkUnitTests {
 			// You should set up a client-side handler that handles window.location change to get
 			// that token and pass it to the ApiClient object as shown in the next
 			// lines:
-			String token = "<once_you_get_the_oauth_token_put_it_here>";
+			//String token = "<once_you_get_the_oauth_token_put_it_here>";
 			// now that the API client has an OAuth token, let's use it in all
 			// DocuSign APIs
 			/*apiClient.setAccessToken(oAuthToken.getAccessToken(), oAuthToken.getExpiresIn());
@@ -201,7 +200,7 @@ public class SdkUnitTests {
 			Assert.assertNotSame(null, userInfo);
 			Assert.assertNotNull(userInfo.getAccounts());
 			Assert.assertTrue(userInfo.getAccounts().size() > 0);
-			
+
 			System.out.println("UserInfo: " + userInfo);
 			// parse first account's baseUrl
 			// below code required for production, no effect in demo (same
@@ -278,8 +277,8 @@ public class SdkUnitTests {
 		envDef.setStatus("sent");
 
 		ApiClient apiClient = new ApiClient(BaseUrl);
-		String currentDir = System.getProperty("user.dir");
-		
+		//String currentDir = System.getProperty("user.dir");
+
 		try {
 			// IMPORTANT NOTE:
 			// the first time you ask for a JWT access token, you should grant access by making the following call
@@ -367,8 +366,8 @@ public class SdkUnitTests {
 		envDef.setStatus("sent");
 
 		ApiClient apiClient = new ApiClient(BaseUrl);
-		String currentDir = System.getProperty("user.dir");
-		
+		//String currentDir = System.getProperty("user.dir");
+
 		try {
 			// IMPORTANT NOTE:
 			// the first time you ask for a JWT access token, you should grant access by making the following call
@@ -492,8 +491,8 @@ public class SdkUnitTests {
 		envDef.setStatus("sent");
 
 		ApiClient apiClient = new ApiClient(BaseUrl);
-		String currentDir = System.getProperty("user.dir");
-		
+		//String currentDir = System.getProperty("user.dir");
+
 		try {
 			// IMPORTANT NOTE:
 			// the first time you ask for a JWT access token, you should grant access by making the following call
@@ -630,8 +629,8 @@ public class SdkUnitTests {
 		templateDef.setEnvelopeTemplateDefinition(envTemplateDef);
 
 		ApiClient apiClient = new ApiClient(BaseUrl);
-		String currentDir = System.getProperty("user.dir");
-		
+		//String currentDir = System.getProperty("user.dir");
+
 		try {
 			// IMPORTANT NOTE:
 			// the first time you ask for a JWT access token, you should grant access by making the following call
@@ -750,7 +749,7 @@ public class SdkUnitTests {
 		// send the envelope (otherwise it will be "created" in the Draft folder
 		envDef.setStatus("sent");
 
-		String currentDir = System.getProperty("user.dir");
+		//String currentDir = System.getProperty("user.dir");
 		try {
 
 			ApiClient apiClient = new ApiClient();
@@ -806,17 +805,17 @@ public class SdkUnitTests {
 			Assert.assertTrue(pdfBytes.length > 0);
 			/*
 			 * try {
-			 * 
+			 *
 			 * File pdfFile = File.createTempFile("ds_", "pdf", null);
 			 * FileOutputStream fos = new FileOutputStream(pdfFile);
 			 * fos.write(pdfBytes);
-			 * 
+			 *
 			 * // show the PDF Desktop.getDesktop().open(pdfFile);
-			 * 
-			 * 
+			 *
+			 *
 			 * } catch (Exception ex) {
 			 * Assert.fail("Could not create pdf File");
-			 * 
+			 *
 			 * }
 			 */
 
@@ -832,8 +831,8 @@ public class SdkUnitTests {
 	public void ListDocumentsTest() {
 		System.out.println("\nListDocumentsTest:\n" + "===========================================");
 		ApiClient apiClient = new ApiClient(BaseUrl);
-		String currentDir = System.getProperty("user.dir");
-		
+		//String currentDir = System.getProperty("user.dir");
+
 		try {
 			// IMPORTANT NOTE:
 			// the first time you ask for a JWT access token, you should grant access by making the following call
@@ -953,8 +952,8 @@ public class SdkUnitTests {
 		envDef.setStatus("sent");
 
 		ApiClient apiClient = new ApiClient(BaseUrl);
-		String currentDir = System.getProperty("user.dir");
-		
+		//String currentDir = System.getProperty("user.dir");
+
 		try {
 			// IMPORTANT NOTE:
 			// the first time you ask for a JWT access token, you should grant access by making the following call
@@ -1084,8 +1083,8 @@ public class SdkUnitTests {
 		envDef.setStatus("sent");
 
 		ApiClient apiClient = new ApiClient(BaseUrl);
-		String currentDir = System.getProperty("user.dir");
-		
+		//String currentDir = System.getProperty("user.dir");
+
 		try {
 			// IMPORTANT NOTE:
 			// the first time you ask for a JWT access token, you should grant access by making the following call
@@ -1137,17 +1136,17 @@ public class SdkUnitTests {
 
 			/*
 			 * try {
-			 * 
+			 *
 			 * File pdfFile = File.createTempFile("ds_", "pdf", null);
 			 * FileOutputStream fos = new FileOutputStream(pdfFile);
 			 * fos.write(pdfBytes);
-			 * 
+			 *
 			 * // show the PDF Desktop.getDesktop().open(pdfFile);
-			 * 
-			 * 
+			 *
+			 *
 			 * } catch (Exception ex) {
 			 * Assert.fail("Could not create pdf File");
-			 * 
+			 *
 			 * }
 			 */
 
@@ -1160,17 +1159,17 @@ public class SdkUnitTests {
 
 			/*
 			 * try {
-			 * 
+			 *
 			 * File diagFile = File.createTempFile("ds_", "txt", null);
 			 * FileOutputStream fos = new FileOutputStream(diagFile);
 			 * fos.write(diagBytes);
-			 * 
+			 *
 			 * // show the PDF Desktop.getDesktop().open(diagFile);
-			 * 
-			 * 
+			 *
+			 *
 			 * } catch (Exception ex) {
 			 * Assert.fail("Could not create diag log File");
-			 * 
+			 *
 			 * }
 			 */
 

@@ -10,11 +10,14 @@ import com.sun.jersey.api.client.Client;
 import com.sun.jersey.api.client.ClientResponse;
 import com.sun.jersey.api.client.GenericType;
 import com.sun.jersey.api.client.WebResource;
+import com.sun.jersey.api.client.config.ClientConfig;
 import com.sun.jersey.api.client.config.DefaultClientConfig;
 import com.sun.jersey.api.client.filter.LoggingFilter;
 import com.sun.jersey.client.urlconnection.HTTPSProperties;
 import com.sun.jersey.core.util.MultivaluedMapImpl;
 import com.sun.jersey.api.client.WebResource.Builder;
+import com.sun.jersey.client.urlconnection.URLConnectionClientHandler;
+import com.sun.jersey.client.urlconnection.HttpURLConnectionFactory;
 
 import com.sun.jersey.multipart.FormDataMultiPart;
 import com.sun.jersey.multipart.file.FileDataBodyPart;
@@ -23,8 +26,12 @@ import org.apache.oltu.oauth2.client.request.OAuthClientRequest.AuthenticationRe
 import org.apache.oltu.oauth2.client.request.OAuthClientRequest.TokenRequestBuilder;
 import org.apache.oltu.oauth2.common.exception.OAuthSystemException;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import javax.ws.rs.core.Response.Status.Family;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.core.MediaType;
@@ -41,10 +48,16 @@ import java.util.Date;
 import java.util.TimeZone;
 import java.net.URI;
 import java.net.URLEncoder;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.net.URL;
+import java.net.HttpURLConnection;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.io.File;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
@@ -82,6 +95,7 @@ public class ApiClient {
   private Map<String, List<String>> responseHeaders;
 
   private DateFormat dateFormat;
+  private SSLContext sslContext = null;
 
   public ApiClient() {
     mapper = new ObjectMapper();
@@ -119,15 +133,15 @@ public class ApiClient {
     this.basePath = basePath;
     this.deriveOAuthBasePathFromRestBasePath();
   }
-  
+
   public ApiClient(String oAuthBasePath, String[] authNames) {
     this();
     this.setOAuthBasePath(oAuthBasePath);
-    for(String authName : authNames) { 
+    for(String authName : authNames) {
       Authentication auth;
-      if (authName == "docusignAccessCode") { 
+      if (authName == "docusignAccessCode") {
         auth = new OAuth(httpClient, OAuthFlow.accessCode, oAuthBasePath + "/oauth/auth", oAuthBasePath + "/oauth/token", "all");
-      } else if (authName == "docusignApiKey") { 
+      } else if (authName == "docusignApiKey") {
         auth = new ApiKeyAuth("header", "docusignApiKey");
       } else {
         throw new RuntimeException("auth name \"" + authName + "\" not found in available auth names");
@@ -143,7 +157,7 @@ public class ApiClient {
   public ApiClient(String oAuthBasePath, String authName) {
     this(oAuthBasePath, new String[]{authName});
   }
-  
+
   /**
    * Helper constructor for OAuth2
    * @param oAuthBasePath The API base path
@@ -198,7 +212,7 @@ public class ApiClient {
   public Authentication getAuthentication(String authName) {
     return authentications.get(authName);
   }
-  
+
   public void addAuthorization(String authName, Authentication auth) {
     authentications.put(authName, auth);
   }
@@ -262,7 +276,7 @@ public class ApiClient {
     addDefaultHeader("User-Agent", userAgent);
     return this;
   }
-  
+
   public void updateAccessToken() {
     for (Authentication auth : authentications.values()) {
       if (auth instanceof OAuth) {
@@ -387,7 +401,7 @@ public class ApiClient {
     this.mapper.setDateFormat((DateFormat) dateFormat.clone());
     return this;
   }
-  
+
   /**
    * Helper method to configure the token endpoint of the first oauth found in the authentications (there should be only one)
    * @return
@@ -401,7 +415,7 @@ public class ApiClient {
     }
     return null;
   }
-  
+
 
   /**
     * Helper method to configure authorization endpoint of the first oauth found in the authentications (there should be only one)
@@ -475,7 +489,7 @@ public class ApiClient {
     }
     return builder.build();
   }
-  
+
   /**
    * Helper method to configure the OAuth accessCode/implicit flow parameters
    * @param clientId OAuth2 client ID: Identifies the client making the request.
@@ -516,9 +530,9 @@ public class ApiClient {
     this.oAuthBasePath = oAuthBasePath;
     return this;
   }
-  
+
   /**
-   * 
+   *
    * @param clientId OAuth2 client ID: Identifies the client making the request.
    * Client applications may be scoped to a limited set of system access.
    * @param clientSecret the secret key you generated when you set up the integration in DocuSign Admin console.
@@ -535,7 +549,7 @@ public class ApiClient {
       form.add("code", code);
       form.add("grant_type", "authorization_code");
 
-      Client client = Client.create();
+      Client client = buildHttpClient(debugging);
       WebResource webResource = client.resource("https://" + getOAuthBasePath() + "/oauth/token");
       ClientResponse response = webResource
               .type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
@@ -562,9 +576,9 @@ public class ApiClient {
       throw e;
     }
   }
-  
+
   /**
-   * 
+   *
    * @param accessToken the bearer token to use to authenticate for this call.
    * @return OAuth UserInfo model
    * @throws ApiException if the HTTP call status is different than 2xx.
@@ -576,7 +590,7 @@ public class ApiClient {
         throw new IllegalArgumentException("Cannot find a valid access token. Make sure OAuth is configured before you try again.");
       }
 
-      Client client = Client.create();
+      Client client = buildHttpClient(debugging);
       WebResource webResource = client.resource("https://" + getOAuthBasePath() + "/oauth/userinfo");
       ClientResponse response = webResource.header("Authorization", "Bearer " + accessToken).get(ClientResponse.class);
       if (response.getStatusInfo().getFamily() != Family.SUCCESSFUL) {
@@ -635,7 +649,7 @@ public class ApiClient {
     .queryParam("redirect_uri", redirectURI)
     .build().toString();
   }
-  
+
   /**
    * Configures the current instance of ApiClient with a fresh OAuth JWT access token from DocuSign
    * @param publicKeyFilename the filename of the RSA public key
@@ -645,7 +659,7 @@ public class ApiClient {
    * @param clientId DocuSign OAuth Client Id (AKA Integrator Key)
    * @param userId DocuSign user Id to be impersonated (This is a UUID)
    * @param expiresIn number of seconds remaining before the JWT assertion is considered as invalid
-   * @throws IOException if there is an issue with either the public or private file 
+   * @throws IOException if there is an issue with either the public or private file
    * @throws ApiException if there is an error while exchanging the JWT with an access token
    * @deprecated  As of release 2.7.0, replaced by {@link #requestJWTUserToken()} and {@link #requestJWTApplicationToken()}
    */
@@ -656,7 +670,7 @@ public class ApiClient {
       form.add("assertion", assertion);
       form.add("grant_type", OAuth.GRANT_TYPE_JWT);
 
-      Client client = Client.create();
+      Client client = buildHttpClient(debugging);
       WebResource webResource = client.resource("https://" + oAuthBasePath + "/oauth/token");
       ClientResponse response = webResource
               .type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
@@ -705,7 +719,7 @@ public class ApiClient {
       form.add("assertion", assertion);
       form.add("grant_type", OAuth.GRANT_TYPE_JWT);
 
-      Client client = Client.create();
+      Client client = buildHttpClient(debugging);
       WebResource webResource = client.resource("https://" + getOAuthBasePath() + "/oauth/token");
       ClientResponse response = webResource
               .type(MediaType.APPLICATION_FORM_URLENCODED_TYPE)
@@ -719,7 +733,7 @@ public class ApiClient {
       }
       return oAuthToken;
     } catch (JsonParseException e) {
-      throw new ApiException("Error while parsing the response for the access token.");
+      throw new ApiException("Error while parsing the response for the access token: " + e);
     } catch (JsonMappingException e) {
       throw e;
     } catch (IOException e) {
@@ -976,13 +990,13 @@ public class ApiClient {
     for (String key : headerParams.keySet()) {
       builder = builder.header(key, headerParams.get(key));
     }
-	
+
     for (String key : defaultHeaderMap.keySet()) {
       if (!headerParams.containsKey(key)) {
         builder = builder.header(key, defaultHeaderMap.get(key));
       }
     }
-	
+
     // Add DocuSign Tracking Header
     builder = builder.header("X-DocuSign-SDK", "Java");
 
@@ -1105,31 +1119,90 @@ public class ApiClient {
    * Build the Client used to make HTTP requests.
    */
   private Client buildHttpClient(boolean debugging) {
+    final ClientConfig conf = new DefaultClientConfig();
     // Add the JSON serialization support to Jersey
     JacksonJsonProvider jsonProvider = new JacksonJsonProvider(mapper);
-    DefaultClientConfig conf = new DefaultClientConfig();
     conf.getSingletons().add(jsonProvider);
-
+    
     // Force TLS v1.2
     try {
-      System.setProperty("https.protocols", "TLSv1.2");
+    	System.setProperty("https.protocols", "TLSv1.2");
     } catch (SecurityException se) {
-      System.err.println("failed to set https.protocols property");
+        System.err.println("failed to set https.protocols property");
     }
-    SSLContext ctx = null;
-    try {
-      ctx = SSLContext.getInstance("TLSv1.2");
-      ctx.init(null, null, null);
-    } catch (final Exception ex) {
-      System.err.println("failed to initialize SSL context");
+    
+    // Setup the SSLContext object to use for HTTPS connections to the API
+    if (sslContext == null) {
+	    try {
+	    	sslContext = SSLContext.getInstance("TLSv1.2");
+	    	sslContext.init(null, new TrustManager[] { new SecureTrustManager() }, new SecureRandom());
+	    } catch (final Exception ex) {
+	      System.err.println("failed to initialize SSL context");
+	    }
+	    
+		conf.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(new HostnameVerifier() {
+			@Override
+			public boolean verify(String hostname, SSLSession session) {
+				return true;
+			}
+		}, sslContext));
+	    HttpsURLConnection.setDefaultSSLSocketFactory(sslContext.getSocketFactory());
     }
-    conf.getProperties().put(HTTPSProperties.PROPERTY_HTTPS_PROPERTIES, new HTTPSProperties(null, ctx));
-    HttpsURLConnection.setDefaultSSLSocketFactory(ctx.getSocketFactory());
+    
+	Client client = new Client(new URLConnectionClientHandler(new HttpURLConnectionFactory() {
+		Proxy p = null;
 
-    Client client = Client.create(conf);
+		@Override
+		public HttpURLConnection getHttpURLConnection(URL url) throws IOException {
+		    // set up the proxy/no-proxy settings
+			if (p == null) {
+				if (System.getProperties().containsKey("https.proxyHost")) {
+					p = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(System.getProperty("https.proxyHost"),
+							Integer.getInteger("https.proxyPort", 443)));
+				} else if (System.getProperties().containsKey("http.proxyHost")) {
+					p = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(System.getProperty("http.proxyHost"),
+							Integer.getInteger("http.proxyPort", 80)));
+				} else {
+					p = Proxy.NO_PROXY;
+				}
+			}
+			HttpsURLConnection connection = (HttpsURLConnection) url.openConnection(p);
+		    connection.setSSLSocketFactory(sslContext.getSocketFactory());
+			
+			return connection;
+		}
+	}), conf);
+    
     if (debugging) {
       client.addFilter(new LoggingFilter());
     }
     return client;
+  }
+
+  class SecureTrustManager implements X509TrustManager {
+
+      @Override
+      public void checkClientTrusted(X509Certificate[] arg0, String arg1)
+              throws CertificateException {
+      }
+
+      @Override
+      public void checkServerTrusted(X509Certificate[] arg0, String arg1)
+              throws CertificateException {
+      }
+
+      @Override
+      public X509Certificate[] getAcceptedIssuers() {
+          return new X509Certificate[0];
+      }
+
+      public boolean isClientTrusted(X509Certificate[] arg0) {
+          return true;
+      }
+
+      public boolean isServerTrusted(X509Certificate[] arg0) {
+          return true;
+      }
+
   }
 }
