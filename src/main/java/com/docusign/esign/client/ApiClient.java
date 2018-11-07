@@ -52,8 +52,10 @@ import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.net.URL;
+import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.InetSocketAddress;
+import java.net.PasswordAuthentication;
 import java.net.Proxy;
 import java.io.File;
 import java.io.IOException;
@@ -1157,12 +1159,50 @@ public class ApiClient {
 		    // set up the proxy/no-proxy settings
 			if (p == null) {
 				if (System.getProperties().containsKey("https.proxyHost")) {
-					p = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(System.getProperty("https.proxyHost"),
-							Integer.getInteger("https.proxyPort", 443)));
+					// set up the proxy host and port
+		            final String host = System.getProperty("https.proxyHost");
+		            final Integer port = Integer.getInteger("https.proxyPort");
+		            if (host != null && port != null) {
+				    	p = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+		            }
+					// set up optional proxy authentication credentials
+					final String user = System.getProperty("https.proxyUser");
+				    final String password = System.getProperty("https.proxyPassword");
+				    if (user != null && password != null) {
+				    	Authenticator.setDefault(new Authenticator() {
+						    @Override
+						    protected PasswordAuthentication getPasswordAuthentication() {
+						        if (getRequestorType() == RequestorType.PROXY && getRequestingHost().equalsIgnoreCase(host) && port == getRequestingPort()) {
+						        	return new PasswordAuthentication(user, password.toCharArray());
+						        }
+						        return null;
+						    }
+						});
+				    }
 				} else if (System.getProperties().containsKey("http.proxyHost")) {
-					p = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(System.getProperty("http.proxyHost"),
-							Integer.getInteger("http.proxyPort", 80)));
-				} else {
+					// set up the proxy host and port
+		            final String host = System.getProperty("http.proxyHost");
+		            final Integer port = Integer.getInteger("http.proxyPort");
+		            if (host != null && port != null) {
+				    	p = new Proxy(Proxy.Type.HTTP, new InetSocketAddress(host, port));
+		            }
+					// set up optional proxy authentication credentials
+					final String user = System.getProperty("http.proxyUser");
+				    final String password = System.getProperty("http.proxyPassword");
+				    if (user != null && password != null) {
+				    	Authenticator.setDefault(new Authenticator() {
+						    @Override
+						    protected PasswordAuthentication getPasswordAuthentication() {
+						        if (getRequestorType() == RequestorType.PROXY && getRequestingHost().equalsIgnoreCase(host) && port == getRequestingPort()) {
+						        	return new PasswordAuthentication(user, password.toCharArray());
+						        }
+						        return null;
+						    }
+						});
+				    }
+				}
+				// no-proxy fallback if the proxy settings are misconfigured in the system properties
+				if (p == null) {
 					p = Proxy.NO_PROXY;
 				}
 			}
