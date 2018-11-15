@@ -87,6 +87,9 @@ public class EnvelopeDefinition {
   @JsonProperty("deliveredDateTime")
   private String deliveredDateTime = null;
 
+  @JsonProperty("disableResponsiveDocument")
+  private String disableResponsiveDocument = null;
+
   @JsonProperty("documents")
   private java.util.List<Document> documents = new java.util.ArrayList<Document>();
 
@@ -602,6 +605,23 @@ public class EnvelopeDefinition {
 
   public void setDeliveredDateTime(String deliveredDateTime) {
     this.deliveredDateTime = deliveredDateTime;
+  }
+
+  public EnvelopeDefinition disableResponsiveDocument(String disableResponsiveDocument) {
+    this.disableResponsiveDocument = disableResponsiveDocument;
+    return this;
+  }
+
+   /**
+   * @return disableResponsiveDocuments
+  **/
+  @ApiModelProperty(example = "null", value = "")
+  public String getDisableResponsiveDocument() {
+    return disableResponsiveDocument;
+  }
+
+  public void setDisableResponsiveDocument(String disableResponsiveDocument) {
+    this.disableResponsiveDocument = disableResponsiveDocument;
   }
 
   public EnvelopeDefinition documents(java.util.List<Document> documents) {
